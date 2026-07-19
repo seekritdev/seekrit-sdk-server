@@ -10,10 +10,15 @@
 //! job (`apps/run` uses blocking `ureq`; `apps/proxy` uses async `reqwest`), so
 //! this crate stays tiny and reusable. The crypto is bit-compatible with
 //! `packages/crypto` (WebCrypto) and proven so by the vector test in `apps/run`.
+//!
+//! [`kms`] adds the same-family client-side KMS envelope operations (`ce1`/`dk1`
+//! encrypt, decrypt, and data-key generation) that back the AWS-KMS-compatible
+//! gateway in `apps/kms`; its cross-impl vectors live there.
 
 pub mod b64;
 pub mod crypto;
 pub mod error;
+pub mod kms;
 pub mod resolve;
 
 pub use error::{CoreError, CoreResult};

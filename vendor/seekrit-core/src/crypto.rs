@@ -97,9 +97,32 @@ pub fn unwrap_dek(wrapped: &str, key: &TokenKey) -> CoreResult<Dek> {
 }
 
 /// A 32-byte environment data-encryption key. Zeroized on drop.
+///
+/// The same type also carries the raw material of a KMS `encrypt` key — a
+/// managed AES-256-GCM key reaches a client as a `wd1.` grant, exactly like an
+/// environment DEK, so [`unwrap_dek`] recovers both. The KMS envelope
+/// operations live in [`crate::kms`] and read this material via
+/// [`Dek::material`].
 pub struct Dek([u8; 32]);
 
 impl Dek {
+    /// Construct a DEK from raw 32-byte material a client already holds.
+    ///
+    /// The zero-knowledge invariant is about the *server*, which never possesses
+    /// key bytes; a client legitimately does. The usual path is [`unwrap_dek`]
+    /// from a `wd1.` grant, but the KMS gateway's tests (and any caller importing
+    /// external key material) build a DEK directly. The bytes are copied into a
+    /// `Dek`, which zeroizes them on drop.
+    pub fn from_material(material: [u8; 32]) -> Dek {
+        Dek(material)
+    }
+
+    /// The raw 32-byte key. Crate-internal so [`crate::kms`] can drive the
+    /// AES-GCM envelope ops without widening `Dek`'s public surface.
+    pub(crate) fn material(&self) -> &[u8; 32] {
+        &self.0
+    }
+
     /// Decrypt one `sc1.<iv>.<ct>` secret blob. `aad` binds the ciphertext to
     /// `<environmentId>/<NAME>`; a mismatch fails the GCM tag check.
     pub fn decrypt_secret(&self, blob: &str, aad: &[u8]) -> CoreResult<String> {
@@ -129,7 +152,12 @@ fn self_scalar(key: &TokenKey) -> p256::NonZeroScalar {
 
 /// AES-256-GCM decrypt. `ct` is ciphertext||tag (WebCrypto layout); `iv` is 12
 /// bytes; `aad` is the additional authenticated data (may be empty).
-fn aes_gcm_decrypt(key32: &[u8; 32], iv: &[u8], ct: &[u8], aad: &[u8]) -> CoreResult<Vec<u8>> {
+pub(crate) fn aes_gcm_decrypt(
+    key32: &[u8; 32],
+    iv: &[u8],
+    ct: &[u8],
+    aad: &[u8],
+) -> CoreResult<Vec<u8>> {
     if iv.len() != 12 {
         return Err(CoreError::Crypto("invalid GCM nonce length".into()));
     }
@@ -142,9 +170,39 @@ fn aes_gcm_decrypt(key32: &[u8; 32], iv: &[u8], ct: &[u8], aad: &[u8]) -> CoreRe
         .map_err(|_| CoreError::Crypto("AES-GCM authentication failed".into()))
 }
 
+/// AES-256-GCM encrypt. Returns ciphertext||tag (WebCrypto layout, matching what
+/// `crypto.subtle.encrypt` produces). `iv` is 12 bytes; `aad` may be empty.
+pub(crate) fn aes_gcm_encrypt(
+    key32: &[u8; 32],
+    iv: &[u8],
+    plaintext: &[u8],
+    aad: &[u8],
+) -> CoreResult<Vec<u8>> {
+    if iv.len() != 12 {
+        return Err(CoreError::Crypto("invalid GCM nonce length".into()));
+    }
+    let cipher = Aes256Gcm::new_from_slice(key32)
+        .map_err(|_| CoreError::Crypto("invalid AES key length".into()))?;
+    let mut nonce = Nonce::default();
+    nonce.copy_from_slice(iv);
+    cipher
+        .encrypt(
+            &nonce,
+            Payload {
+                msg: plaintext,
+                aad,
+            },
+        )
+        .map_err(|_| CoreError::Crypto("AES-GCM encryption failed".into()))
+}
+
 /// Split `prefix.part1.part2.…` into exactly `count` dot-separated parts after
 /// verifying the version prefix. Mirrors `splitBlob` in the TS crypto package.
-fn split_blob<'a>(blob: &'a str, prefix: &str, count: usize) -> CoreResult<Vec<&'a str>> {
+pub(crate) fn split_blob<'a>(
+    blob: &'a str,
+    prefix: &str,
+    count: usize,
+) -> CoreResult<Vec<&'a str>> {
     let mut it = blob.split('.');
     let got = it.next();
     if got != Some(prefix) {

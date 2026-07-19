@@ -390,6 +390,7 @@ name = "seekrit-core"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
+ "getrandom",
  "hkdf",
  "p256",
  "serde",

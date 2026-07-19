@@ -25,6 +25,30 @@ const fn decode_table() -> [u8; 256] {
 
 static DECODE: [u8; 256] = decode_table();
 
+/// base64url alphabet (RFC 4648 §5): A-Z a-z 0-9 - _.
+const ENCODE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+/// Encode bytes as base64url with no padding — the inverse of [`decode`], and a
+/// match for `toBase64Url` in `packages/crypto/src/encoding.ts`.
+pub fn encode(input: &[u8]) -> String {
+    let mut out = String::with_capacity(input.len().div_ceil(3) * 4);
+    let mut acc: u32 = 0;
+    let mut bits: u32 = 0;
+    for &b in input {
+        acc = (acc << 8) | b as u32;
+        bits += 8;
+        while bits >= 6 {
+            bits -= 6;
+            out.push(ENCODE[((acc >> bits) & 0x3f) as usize] as char);
+        }
+    }
+    // Flush the final partial group, left-aligned (low bits zero-padded).
+    if bits > 0 {
+        out.push(ENCODE[((acc << (6 - bits)) & 0x3f) as usize] as char);
+    }
+    out
+}
+
 /// Decode a base64url string (no padding; `-`/`_` alphabet) into bytes.
 pub fn decode(input: &str) -> Result<Vec<u8>, String> {
     let bytes = input.as_bytes();
@@ -52,7 +76,7 @@ pub fn decode(input: &str) -> Result<Vec<u8>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::decode;
+    use super::{decode, encode};
 
     #[test]
     fn decodes_known_values() {
@@ -63,6 +87,27 @@ mod tests {
         assert_eq!(decode("Zm9vYg").unwrap(), b"foob");
         assert_eq!(decode("Zm9vYmE").unwrap(), b"fooba");
         assert_eq!(decode("Zm9vYmFy").unwrap(), b"foobar");
+    }
+
+    #[test]
+    fn encodes_known_values() {
+        assert_eq!(encode(b""), "");
+        assert_eq!(encode(b"f"), "Zg");
+        assert_eq!(encode(b"fo"), "Zm8");
+        assert_eq!(encode(b"foo"), "Zm9v");
+        assert_eq!(encode(b"foob"), "Zm9vYg");
+        assert_eq!(encode(b"fooba"), "Zm9vYmE");
+        assert_eq!(encode(b"foobar"), "Zm9vYmFy");
+        // url-safe alphabet: 0xfb 0xef 0xff -> "--__".
+        assert_eq!(encode(&[0xfb, 0xef, 0xff]), "--__");
+    }
+
+    #[test]
+    fn round_trips() {
+        for len in 0..64 {
+            let bytes: Vec<u8> = (0..len).map(|i| (i * 7 + 3) as u8).collect();
+            assert_eq!(decode(&encode(&bytes)).unwrap(), bytes);
+        }
     }
 
     #[test]

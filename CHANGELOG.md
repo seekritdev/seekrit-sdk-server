@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/mileszim/seekrit/compare/sdk-server-v0.2.0...sdk-server-v0.3.0) (2026-07-19)
+
+
+### Features
+
+* **kms:** AWS KMS-compatible gateway (seekrit-kms) ([#108](https://github.com/mileszim/seekrit/issues/108)) ([e25e535](https://github.com/mileszim/seekrit/commit/e25e53537b282d217abcabb924e6a1464e361b30))
+
 ## [0.2.0](https://github.com/mileszim/seekrit/compare/sdk-server-v0.1.0...sdk-server-v0.2.0) (2026-07-18)
 
 

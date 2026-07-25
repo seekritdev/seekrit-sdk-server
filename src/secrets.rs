@@ -10,6 +10,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use seekrit_core::crypto::{secret_aad, unwrap_dek, TokenKey};
+use seekrit_core::interpolate::interpolate_secrets;
 use zeroize::Zeroizing;
 
 /// A fatal startup failure. Printed to stderr; the process then exits non-zero.
@@ -18,6 +19,9 @@ pub enum StartupError {
     Token(String),
     Resolve(String),
     Decrypt(String),
+    /// A `${OTHER_SECRET}` reference could not be expanded (a cycle, or an
+    /// unbounded expansion) — fail closed rather than serve a wrong value.
+    Reference(String),
 }
 
 impl std::fmt::Display for StartupError {
@@ -26,6 +30,7 @@ impl std::fmt::Display for StartupError {
             StartupError::Token(m) => write!(f, "invalid service token: {m}"),
             StartupError::Resolve(m) => write!(f, "could not resolve secrets: {m}"),
             StartupError::Decrypt(m) => write!(f, "could not decrypt secrets: {m}"),
+            StartupError::Reference(m) => write!(f, "could not expand secret references: {m}"),
         }
     }
 }
@@ -38,9 +43,9 @@ pub struct SecretStore {
 }
 
 impl SecretStore {
-    /// Build a store from already-resolved name/value pairs. The loader uses the
-    /// decrypt path below; this is also the seam integration tests construct
-    /// through.
+    /// Build a store from already-resolved name/value pairs, verbatim — no
+    /// reference expansion (that happens in [`load`], over the merged set). This
+    /// is also the seam integration tests construct through.
     pub fn from_values<I: IntoIterator<Item = (String, String)>>(pairs: I) -> Self {
         SecretStore {
             map: pairs
@@ -80,7 +85,9 @@ impl SecretStore {
 }
 
 /// Fetch `/v1/resolve` and decrypt every layer into a [`SecretStore`], applying
-/// the same precedence as `seekrit-run`: groups first, then the app env on top.
+/// the same precedence as `seekrit-run`: groups first, then the app env on top,
+/// then `${OTHER_SECRET}` reference expansion over the merged set — so ESO syncs
+/// the same value a `seekrit run` process would see.
 pub async fn load(
     client: &reqwest::Client,
     api_url: &str,
@@ -91,7 +98,10 @@ pub async fn load(
 
     let resolved = crate::resolve::fetch(client, api_url, token).await?;
 
-    let mut map: HashMap<String, Zeroizing<String>> = HashMap::new();
+    // Merged plaintext, before reference expansion. Held in plain `String`s only
+    // for the length of this function (`decrypt_secret` returns one anyway);
+    // everything that outlives it goes into the `Zeroizing` store below.
+    let mut merged: BTreeMap<String, String> = BTreeMap::new();
     // Layers arrive lowest precedence first (groups → app); later writes win.
     for layer in &resolved.layers {
         let dek = unwrap_dek(&layer.wrapped_dek, &key)
@@ -101,10 +111,18 @@ pub async fn load(
             let value = dek
                 .decrypt_secret(&secret.ciphertext, &aad)
                 .map_err(|e| StartupError::Decrypt(e.to_string()))?;
-            map.insert(secret.name.clone(), Zeroizing::new(value));
+            merged.insert(secret.name.clone(), value);
         }
         // `dek` zeroizes itself as the loop iteration ends.
     }
+
+    let expanded =
+        interpolate_secrets(&merged).map_err(|e| StartupError::Reference(e.to_string()))?;
+    let map: HashMap<String, Zeroizing<String>> = expanded
+        .values
+        .into_iter()
+        .map(|(name, value)| (name, Zeroizing::new(value)))
+        .collect();
 
     Ok(SecretStore { map })
 }

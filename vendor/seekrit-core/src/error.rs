@@ -10,6 +10,9 @@ pub enum CoreError {
     /// A DEK could not be unwrapped, or a secret failed to decrypt (wrong key,
     /// tampered data, or mismatched context). Never leaks plaintext.
     Crypto(String),
+    /// A `${OTHER_SECRET}` reference could not be expanded — a cycle, or a value
+    /// that expands without bound. Names only, never plaintext.
+    Reference(String),
 }
 
 impl fmt::Display for CoreError {
@@ -17,6 +20,7 @@ impl fmt::Display for CoreError {
         match self {
             CoreError::MalformedToken(m) => write!(f, "invalid service token: {m}"),
             CoreError::Crypto(m) => write!(f, "{m}"),
+            CoreError::Reference(m) => write!(f, "{m}"),
         }
     }
 }

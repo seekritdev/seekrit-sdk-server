@@ -25,7 +25,7 @@
 #       -p 8080:8080 seekritdev/sdk-server
 
 # ---- build stage: static musl binary ----------------------------------------
-FROM rust:1.86-alpine AS build
+FROM rust:1.97-alpine AS build
 
 # musl-dev + a C toolchain: needed to build `ring` (rustls' crypto backend).
 RUN apk add --no-cache musl-dev gcc make

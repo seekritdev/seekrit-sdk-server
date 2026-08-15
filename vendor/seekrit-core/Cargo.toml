@@ -2,7 +2,7 @@
 name = "seekrit-core"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.82"
+rust-version = "1.88"
 description = "Shared, transport-free zero-knowledge primitives for seekrit clients: service-token key recovery, DEK unwrap, secret decryption, and the /v1/resolve response types. Bit-compatible with @seekrit/crypto (WebCrypto)."
 license = "MIT"
 repository = "https://github.com/seekritdev/seekrit-sdk-server"

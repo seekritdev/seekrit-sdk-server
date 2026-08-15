@@ -1,6 +1,6 @@
 [package]
 name = "seekrit-sdk-server"
-version = "0.5.1"
+version = "0.6.0"
 edition = "2021"
 rust-version = "1.88"
 description = "Cluster-side resolver for seekrit: holds a service token, resolves and decrypts secrets locally (zero-knowledge, via @seekrit/crypto's Rust core), and serves the plaintext over a tiny authed HTTP API. Fronts the External Secrets Operator's webhook provider so Kubernetes can sync seekrit secrets without the API ever seeing plaintext."

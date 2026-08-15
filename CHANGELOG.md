@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/mileszim/seekrit/compare/sdk-server-v0.5.1...sdk-server-v0.6.0) (2026-08-15)
+
+
+### Features
+
+* opt-in last-known-good cache for the integration tools ([#192](https://github.com/mileszim/seekrit/issues/192)) ([c14eeaa](https://github.com/mileszim/seekrit/commit/c14eeaa3c01f9d397e71033ecc13d7e747e0ef25))
+
 ## [0.5.1](https://github.com/mileszim/seekrit/compare/sdk-server-v0.5.0...sdk-server-v0.5.1) (2026-08-15)
 
 

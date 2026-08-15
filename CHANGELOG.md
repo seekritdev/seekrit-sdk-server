@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/mileszim/seekrit/compare/sdk-server-v0.4.0...sdk-server-v0.5.0) (2026-08-15)
+
+
+### Features
+
+* OpenTelemetry for the self-hosted services ([#187](https://github.com/mileszim/seekrit/issues/187)) ([ead4ac6](https://github.com/mileszim/seekrit/commit/ead4ac6492e2e032e0ad0c25f0fbbf7830397a8a))
+
 ## [0.4.0](https://github.com/mileszim/seekrit/compare/sdk-server-v0.3.0...sdk-server-v0.4.0) (2026-07-25)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/mileszim/seekrit/compare/sdk-server-v0.5.0...sdk-server-v0.5.1) (2026-08-15)
+
+
+### Bug Fixes
+
+* **build:** bump Rust image to 1.97 so the OTel lockfiles build ([#190](https://github.com/mileszim/seekrit/issues/190)) ([f544ff2](https://github.com/mileszim/seekrit/commit/f544ff2eb272506f8a0e9e7558f85690f3682ffe))
+
 ## [0.5.0](https://github.com/mileszim/seekrit/compare/sdk-server-v0.4.0...sdk-server-v0.5.0) (2026-08-15)
 
 

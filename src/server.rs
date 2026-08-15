@@ -26,6 +26,7 @@ use axum::{
 use serde_json::json;
 
 use crate::secrets::SecretStore;
+use crate::telemetry::Metrics;
 
 /// Shared, cheaply-cloned handler state.
 #[derive(Clone)]
@@ -34,6 +35,8 @@ pub struct AppState {
     pub store: Arc<ArcSwap<SecretStore>>,
     /// The bearer key callers must present on `/v1/secret*`.
     pub api_key: Arc<String>,
+    /// Instruments for the API plane.
+    pub metrics: Arc<Metrics>,
 }
 
 pub fn router(state: AppState) -> Router {
@@ -55,24 +58,58 @@ async fn get_secret(
     headers: HeaderMap,
     Path(name): Path<String>,
 ) -> Response {
+    // The secret *name* is recorded (ESO syncs are debugged by name, and names
+    // are already in the audit log); the value returned below never is.
+    let span = tracing::info_span!(
+        "GET /v1/secret/{name}",
+        { seekrit_telemetry::attr::SECRET_NAME } = %name,
+        "http.response.status_code" = tracing::field::Empty,
+    );
+    seekrit_telemetry::set_parent_context(&span, seekrit_telemetry::extract_context(&headers));
+    let _enter = span.enter();
+
     if let Some(rej) = unauthorized(&state, &headers) {
+        state.metrics.record_secret_read("unauthorized");
+        span.record("http.response.status_code", 401);
         return rej;
     }
     match state.store.load().get(&name) {
-        Some(value) => Json(json!({ "value": value })).into_response(),
-        None => (
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": "not_found", "name": name })),
-        )
-            .into_response(),
+        Some(value) => {
+            state.metrics.record_secret_read("hit");
+            span.record("http.response.status_code", 200);
+            Json(json!({ "value": value })).into_response()
+        }
+        None => {
+            state.metrics.record_secret_read("miss");
+            span.record("http.response.status_code", 404);
+            (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": "not_found", "name": name })),
+            )
+                .into_response()
+        }
     }
 }
 
 async fn get_all(State(state): State<AppState>, headers: HeaderMap) -> Response {
+    let span = tracing::info_span!(
+        "GET /v1/secrets",
+        { seekrit_telemetry::attr::SECRET_COUNT } = tracing::field::Empty,
+        "http.response.status_code" = tracing::field::Empty,
+    );
+    seekrit_telemetry::set_parent_context(&span, seekrit_telemetry::extract_context(&headers));
+    let _enter = span.enter();
+
     if let Some(rej) = unauthorized(&state, &headers) {
+        state.metrics.record_secret_read("unauthorized");
+        span.record("http.response.status_code", 401);
         return rej;
     }
-    Json(json!({ "data": state.store.load().to_map() })).into_response()
+    let snapshot = state.store.load();
+    state.metrics.record_secret_read("hit");
+    span.record(seekrit_telemetry::attr::SECRET_COUNT, snapshot.len());
+    span.record("http.response.status_code", 200);
+    Json(json!({ "data": snapshot.to_map() })).into_response()
 }
 
 /// Guard for `/v1/secret*`: checks the `Authorization: Bearer <key>` header

@@ -40,6 +40,8 @@ COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY --from=seekrit_core Cargo.toml /build/crates/seekrit-core/Cargo.toml
 COPY --from=seekrit_core src /build/crates/seekrit-core/src
+COPY --from=seekrit_telemetry Cargo.toml /build/crates/seekrit-telemetry/Cargo.toml
+COPY --from=seekrit_telemetry src /build/crates/seekrit-telemetry/src
 RUN cargo build --release --locked --bin seekrit-sdk-server
 
 # ---- runtime stage: nothing but the binary ----------------------------------

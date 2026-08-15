@@ -14,6 +14,7 @@ use arc_swap::ArcSwap;
 use tracing::{info, warn};
 
 use crate::secrets::{self, SecretStore};
+use crate::telemetry::Metrics;
 
 /// Re-resolve every `interval`, replacing the shared snapshot on success.
 pub async fn run(
@@ -22,6 +23,7 @@ pub async fn run(
     api_url: String,
     token: String,
     interval: Duration,
+    metrics: Arc<Metrics>,
 ) {
     let mut ticker = tokio::time::interval(interval);
     // If a refresh runs long, don't fire a burst of catch-up ticks afterward.
@@ -31,12 +33,22 @@ pub async fn run(
 
     loop {
         ticker.tick().await;
+        // A refresh is the sidecar's liveness signal for rotations: alert on
+        // `outcome="error"` here and you learn the snapshot is going stale long
+        // before ESO starts syncing something wrong.
+        let span = tracing::info_span!("refresh_secrets");
+        let _enter = span.enter();
+
         match secrets::load(&client, &api_url, &token).await {
             Ok(next) => {
                 info!(secrets = next.len(), "refreshed secrets");
+                metrics.record_refresh("ok", Some(next.len()));
                 store.store(Arc::new(next));
             }
-            Err(e) => warn!("refresh failed, serving last-good snapshot: {e}"),
+            Err(e) => {
+                warn!("refresh failed, serving last-good snapshot: {e}");
+                metrics.record_refresh("error", None);
+            }
         }
     }
 }

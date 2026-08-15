@@ -16,3 +16,4 @@ pub mod refresh;
 pub mod resolve;
 pub mod secrets;
 pub mod server;
+pub mod telemetry;

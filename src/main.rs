@@ -62,9 +62,23 @@ async fn main() {
     std::process::exit(run().await);
 }
 
+/// Set telemetry up, run the server, then flush.
+///
+/// `serve` has many early-return paths; wrapping it keeps the flush in exactly
+/// one place, so a new `return` can't silently drop buffered spans. (The
+/// `std::process::exit` in `main` runs no destructors, so an explicit shutdown
+/// is the only thing that guarantees delivery.)
 async fn run() -> i32 {
-    init_tracing();
+    let telemetry = seekrit_telemetry::init("seekrit-sdk-server", env!("CARGO_PKG_VERSION"));
+    seekrit_telemetry::install_subscriber(&telemetry, "info");
 
+    let code = serve().await;
+
+    telemetry.shutdown();
+    code
+}
+
+async fn serve() -> i32 {
     let argv: Vec<String> = std::env::args().skip(1).collect();
     let args = match parse_args(argv) {
         Ok(Parsed::Help) => {
@@ -156,6 +170,7 @@ async fn run() -> i32 {
     }
 
     let store = Arc::new(ArcSwap::from_pointee(store));
+    let metrics = Arc::new(seekrit_sdk_server::telemetry::Metrics::new());
 
     // Refresh on a timer; failures keep serving the last-good snapshot.
     tokio::spawn(refresh::run(
@@ -164,6 +179,7 @@ async fn run() -> i32 {
         api_url.clone(),
         token.clone(),
         refresh_interval,
+        metrics.clone(),
     ));
 
     let listener = match tokio::net::TcpListener::bind(listen).await {
@@ -178,6 +194,7 @@ async fn run() -> i32 {
     let state = AppState {
         store,
         api_key: Arc::new(api_key),
+        metrics,
     };
     if let Err(e) = axum::serve(listener, router(state))
         .with_graceful_shutdown(shutdown())
@@ -187,13 +204,6 @@ async fn run() -> i32 {
         return 1;
     }
     0
-}
-
-fn init_tracing() {
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
-    // `try_init` so nothing panics if a subscriber is already set (e.g. tests).
-    let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }
 
 async fn shutdown() {

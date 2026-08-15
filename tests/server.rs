@@ -24,6 +24,8 @@ async fn spawn() -> String {
     let state = AppState {
         store: Arc::new(ArcSwap::from_pointee(store)),
         api_key: Arc::new(API_KEY.to_string()),
+        // No exporter is configured in tests, so these instruments are no-ops.
+        metrics: Arc::new(seekrit_sdk_server::telemetry::Metrics::new()),
     };
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();

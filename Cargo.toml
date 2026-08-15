@@ -16,9 +16,23 @@ path = "src/main.rs"
 name = "seekrit_sdk_server"
 path = "src/lib.rs"
 
+[features]
+# Telemetry is on by default: a released binary is observable out of the box and
+# still exports nothing until an OTEL_EXPORTER_OTLP_* endpoint is configured.
+# Build with `--no-default-features` to compile the OpenTelemetry stack out
+# entirely for a smaller binary; instrumentation call sites stay put and become
+# no-ops.
+default = ["otel"]
+otel = ["seekrit-telemetry/otel"]
+
 [dependencies]
 # Shared, transport-free zero-knowledge core (token key, DEK unwrap, decrypt).
 seekrit-core = { path = "vendor/seekrit-core" }
+
+# Shared OpenTelemetry wiring (OTLP/HTTP traces, metrics, logs). Inert until an
+# OTEL_EXPORTER_OTLP_* endpoint is configured; also owns the tracing subscriber
+# so all the self-hosted services log identically.
+seekrit-telemetry = { path = "../../crates/seekrit-telemetry", default-features = false }
 
 # Async HTTP server (the API plane) + client (startup + refresh resolve calls).
 tokio = { version = "1", features = [
@@ -42,12 +56,14 @@ arc-swap = "1"
 # Response bodies + resolve response deserialization.
 serde_json = "1"
 
-# Observability + secret hygiene.
+# Observability + secret hygiene. The subscriber itself is installed by
+# seekrit-telemetry, so only the facade is needed here.
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 zeroize = "1"
 
 [dev-dependencies]
+# Span-capture harness for the zero-knowledge leak test (tests/telemetry.rs).
+seekrit-telemetry = { path = "../../crates/seekrit-telemetry", features = ["testing"] }
 # Tests exercise the API over real HTTP; `json` decodes the responses.
 reqwest = { version = "0.12", default-features = false, features = [
   "rustls-tls",

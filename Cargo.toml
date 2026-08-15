@@ -34,6 +34,10 @@ seekrit-core = { path = "vendor/seekrit-core" }
 # so all the self-hosted services log identically.
 seekrit-telemetry = { path = "../../crates/seekrit-telemetry", default-features = false }
 
+# Opt-in last-known-good cache (--cache-dir): lets a pod that restarts during a
+# seekrit outage come back on the last response it saw instead of crash-looping.
+seekrit-cache = { path = "../../crates/seekrit-cache" }
+
 # Async HTTP server (the API plane) + client (startup + refresh resolve calls).
 tokio = { version = "1", features = [
   "rt-multi-thread",

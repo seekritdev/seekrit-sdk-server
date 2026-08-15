@@ -30,7 +30,7 @@ FROM rust:1.97-alpine AS build
 # musl-dev + a C toolchain: needed to build `ring` (rustls' crypto backend).
 RUN apk add --no-cache musl-dev gcc make
 
-# Recreate the repo layout so the `../../crates/seekrit-core` path dependency in
+# Recreate the repo layout so the `../../crates/seekrit-core` path dependencies in
 # apps/seekrit-sdk-server/Cargo.toml resolves. The shared crate arrives via the
 # named context.
 WORKDIR /build/apps/seekrit-sdk-server
@@ -42,6 +42,8 @@ COPY --from=seekrit_core Cargo.toml /build/crates/seekrit-core/Cargo.toml
 COPY --from=seekrit_core src /build/crates/seekrit-core/src
 COPY --from=seekrit_telemetry Cargo.toml /build/crates/seekrit-telemetry/Cargo.toml
 COPY --from=seekrit_telemetry src /build/crates/seekrit-telemetry/src
+COPY --from=seekrit_cache Cargo.toml /build/crates/seekrit-cache/Cargo.toml
+COPY --from=seekrit_cache src /build/crates/seekrit-cache/src
 RUN cargo build --release --locked --bin seekrit-sdk-server
 
 # ---- runtime stage: nothing but the binary ----------------------------------

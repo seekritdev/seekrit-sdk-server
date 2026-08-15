@@ -1415,6 +1415,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "seekrit-cache"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "seekrit-core"
 version = "0.1.0"
 dependencies = [
@@ -1434,6 +1443,7 @@ dependencies = [
  "arc-swap",
  "axum",
  "reqwest",
+ "seekrit-cache",
  "seekrit-core",
  "seekrit-telemetry",
  "serde_json",

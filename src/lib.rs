@@ -12,6 +12,7 @@
 //! The library half is split from `main.rs` so the API handlers and the decrypt
 //! loader can be exercised in tests (see `tests/server.rs`).
 
+pub mod lkg;
 pub mod refresh;
 pub mod resolve;
 pub mod secrets;

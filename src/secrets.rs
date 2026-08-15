@@ -93,10 +93,18 @@ pub async fn load(
     api_url: &str,
     token: &str,
 ) -> Result<SecretStore, StartupError> {
+    let body = crate::resolve::fetch_body(client, api_url, token).await?;
+    decode(&body, token)
+}
+
+/// Decrypt a resolve response body into a [`SecretStore`]. Split out from
+/// [`load`] so the same code path serves a live response and a cached one —
+/// there is no second decryption path to keep in step.
+pub fn decode(body: &str, token: &str) -> Result<SecretStore, StartupError> {
     // Recover the token's private key first (cheap, fails fast before network).
     let key = TokenKey::parse(token).map_err(|e| StartupError::Token(e.to_string()))?;
 
-    let resolved = crate::resolve::fetch(client, api_url, token).await?;
+    let resolved = crate::resolve::parse(body)?;
 
     // Merged plaintext, before reference expansion. Held in plain `String`s only
     // for the length of this function (`decrypt_secret` returns one anyway);

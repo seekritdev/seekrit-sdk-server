@@ -23,5 +23,6 @@ pub mod error;
 pub mod interpolate;
 pub mod kms;
 pub mod resolve;
+pub mod sign;
 
 pub use error::{CoreError, CoreResult};

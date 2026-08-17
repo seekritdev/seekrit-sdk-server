@@ -14,8 +14,9 @@ path = "src/lib.rs"
 
 [dependencies]
 # Crypto: audited, pure-Rust RustCrypto stack (no OpenSSL, no C). Mirrors exactly
-# what the browser/CLI do via WebCrypto: ECDH P-256 -> HKDF-SHA256 -> AES-256-GCM.
-p256 = { version = "0.13", features = ["ecdh", "pkcs8"] }
+# what the browser/CLI do via WebCrypto: ECDH P-256 -> HKDF-SHA256 -> AES-256-GCM,
+# plus ECDSA P-256 (SHA-256) for KMS `sign` keys.
+p256 = { version = "0.13", features = ["ecdh", "ecdsa", "pkcs8"] }
 aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
 hkdf = "0.12"
 sha2 = "0.10"

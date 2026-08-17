@@ -16,7 +16,7 @@ use p256::ecdh::diffie_hellman;
 use p256::pkcs8::DecodePrivateKey;
 use p256::{PublicKey, SecretKey};
 use sha2::Sha256;
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::b64;
 use crate::error::{CoreError, CoreResult};
@@ -54,18 +54,23 @@ impl TokenKey {
     }
 }
 
-/// Unwrap an environment DEK from a `wd1.<eph>.<salt>.<iv>.<ct>` blob using the
-/// token's private key. Returned bytes are the raw 32-byte AES key.
-pub fn unwrap_dek(wrapped: &str, key: &TokenKey) -> CoreResult<Dek> {
+/// Unwrap a `wd1.<eph>.<salt>.<iv>.<ct>` grant to its raw plaintext bytes using
+/// the token's private key: ECDH P-256 → HKDF-SHA256 → AES-256-GCM, matching
+/// `wrapDek`/`unwrapDek` in `packages/crypto/src/wrap.ts`.
+///
+/// The grant may wrap key material of any length: a 32-byte environment/KMS DEK
+/// (see [`unwrap_dek`]) or a longer PKCS8 private key for a KMS `sign` key (see
+/// [`crate::sign`]). Bytes are returned zeroizing.
+pub fn unwrap_wrapped_key(wrapped: &str, key: &TokenKey) -> CoreResult<Zeroizing<Vec<u8>>> {
     let parts = split_blob(wrapped, "wd1", 4)?;
-    let eph_raw = b64::decode(parts[0]).map_err(|e| crypto_err("wrapped DEK", e))?;
-    let salt = b64::decode(parts[1]).map_err(|e| crypto_err("wrapped DEK", e))?;
-    let iv = b64::decode(parts[2]).map_err(|e| crypto_err("wrapped DEK", e))?;
-    let ct = b64::decode(parts[3]).map_err(|e| crypto_err("wrapped DEK", e))?;
+    let eph_raw = b64::decode(parts[0]).map_err(|e| crypto_err("wrapped key", e))?;
+    let salt = b64::decode(parts[1]).map_err(|e| crypto_err("wrapped key", e))?;
+    let iv = b64::decode(parts[2]).map_err(|e| crypto_err("wrapped key", e))?;
+    let ct = b64::decode(parts[3]).map_err(|e| crypto_err("wrapped key", e))?;
 
     // Ephemeral public key: raw SEC1 uncompressed point (0x04 || X || Y).
     let ephemeral = PublicKey::from_sec1_bytes(&eph_raw)
-        .map_err(|_| CoreError::Crypto("wrapped DEK: bad ephemeral public key".into()))?;
+        .map_err(|_| CoreError::Crypto("wrapped key: bad ephemeral public key".into()))?;
 
     // ECDH shared secret == X-coordinate of the shared point (matches
     // WebCrypto deriveBits(ECDH, .., 256)).
@@ -76,23 +81,27 @@ pub fn unwrap_dek(wrapped: &str, key: &TokenKey) -> CoreResult<Dek> {
     let hk = Hkdf::<Sha256>::new(Some(&salt), &ikm);
     let mut wrapping = [0u8; 32];
     hk.expand(WRAP_HKDF_INFO, &mut wrapping)
-        .map_err(|_| CoreError::Crypto("wrapped DEK: HKDF expand failed".into()))?;
+        .map_err(|_| CoreError::Crypto("wrapped key: HKDF expand failed".into()))?;
     ikm.zeroize();
 
-    let mut dek = aes_gcm_decrypt(&wrapping, &iv, &ct, &[]).map_err(|_| {
-        CoreError::Crypto("DEK unwrap failed: wrong private key or tampered grant".into())
+    let plaintext = aes_gcm_decrypt(&wrapping, &iv, &ct, &[]).map_err(|_| {
+        CoreError::Crypto("key unwrap failed: wrong private key or tampered grant".into())
     })?;
     wrapping.zeroize();
+    Ok(Zeroizing::new(plaintext))
+}
 
-    if dek.len() != 32 {
-        dek.zeroize();
+/// Unwrap an environment/KMS DEK from a `wd1.` grant using the token's private
+/// key. Like [`unwrap_wrapped_key`] but pins the result to a 32-byte AES key.
+pub fn unwrap_dek(wrapped: &str, key: &TokenKey) -> CoreResult<Dek> {
+    let bytes = unwrap_wrapped_key(wrapped, key)?;
+    if bytes.len() != 32 {
         return Err(CoreError::Crypto(
             "DEK unwrap produced a non-256-bit key".into(),
         ));
     }
     let mut out = [0u8; 32];
-    out.copy_from_slice(&dek);
-    dek.zeroize();
+    out.copy_from_slice(&bytes);
     Ok(Dek(out))
 }
 

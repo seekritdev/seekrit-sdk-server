@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/mileszim/seekrit/compare/sdk-server-v0.6.0...sdk-server-v0.7.0) (2026-08-19)
+
+
+### Features
+
+* **agents:** agent access policy, signed in the browser ([#231](https://github.com/mileszim/seekrit/issues/231)) ([d15f092](https://github.com/mileszim/seekrit/commit/d15f0926a76c8b9dbe58bedd2436bd7f25ea0e28))
+
 ## [0.6.0](https://github.com/mileszim/seekrit/compare/sdk-server-v0.5.1...sdk-server-v0.6.0) (2026-08-15)
 
 

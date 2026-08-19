@@ -27,6 +27,6 @@ getrandom = "0.2"
 
 # Deserialization of the resolve response (transport lives in the consuming app).
 serde = { version = "1", features = ["derive"] }
-
-[dev-dependencies]
+# Policy bundles are parsed here (the signature covers the transported bytes, so
+# the verifier must read the very JSON it verified).
 serde_json = "1"

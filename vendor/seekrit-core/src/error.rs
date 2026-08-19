@@ -13,6 +13,10 @@ pub enum CoreError {
     /// A `${OTHER_SECRET}` reference could not be expanded — a cycle, or a value
     /// that expands without bound. Names only, never plaintext.
     Reference(String),
+    /// A policy bundle was malformed, expired, signed by an unpinned key, or
+    /// otherwise not something a proxy may act on. Carries hosts, secret
+    /// *names*, and thumbprints — never a credential.
+    Policy(String),
 }
 
 impl fmt::Display for CoreError {
@@ -21,6 +25,7 @@ impl fmt::Display for CoreError {
             CoreError::MalformedToken(m) => write!(f, "invalid service token: {m}"),
             CoreError::Crypto(m) => write!(f, "{m}"),
             CoreError::Reference(m) => write!(f, "{m}"),
+            CoreError::Policy(m) => write!(f, "{m}"),
         }
     }
 }

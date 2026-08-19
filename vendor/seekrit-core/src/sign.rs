@@ -97,6 +97,19 @@ impl VerifyingKey {
         Ok(self.0.verify(message, &sig).is_ok())
     }
 
+    /// Verify a bare P1363 (`r‖s`, 64-byte) signature over `message` (SHA-256).
+    ///
+    /// The same encoding [`verify_message`](Self::verify_message) reads out of an
+    /// `sg1.` blob, but for signatures that travel in an envelope of their own —
+    /// the `ap1.` policy bundles in [`crate::policy`], where the key is carried
+    /// beside the signature rather than referenced by key id.
+    pub fn verify_p1363(&self, message: &[u8], sig: &[u8]) -> bool {
+        match Signature::from_slice(sig) {
+            Ok(sig) => self.0.verify(message, &sig).is_ok(),
+            Err(_) => false,
+        }
+    }
+
     /// Verify a DER signature over `message` (SHA-256). `false` = not valid.
     pub fn verify_der(&self, message: &[u8], der: &[u8]) -> bool {
         match Signature::from_der(der) {

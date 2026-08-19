@@ -16,12 +16,17 @@
 //! [`kms`] adds the same-family client-side KMS envelope operations (`ce1`/`dk1`
 //! encrypt, decrypt, and data-key generation) that back the AWS-KMS-compatible
 //! gateway in `apps/kms`; its cross-impl vectors live there.
+//!
+//! [`policy`] adds agent access policy: rule evaluation shared by `apps/proxy`'s
+//! two data planes, and verification of the signed `ap1.` bundles the dashboard
+//! publishes. Its cross-impl vectors live in `apps/proxy`.
 
 pub mod b64;
 pub mod crypto;
 pub mod error;
 pub mod interpolate;
 pub mod kms;
+pub mod policy;
 pub mod resolve;
 pub mod sign;
 

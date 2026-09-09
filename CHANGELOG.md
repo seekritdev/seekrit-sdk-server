@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/mileszim/seekrit/compare/sdk-server-v0.7.0...sdk-server-v0.7.1) (2026-09-09)
+
+
+### Dependencies
+
+* **rust:** sync the app lockfiles with seekrit-core ([#360](https://github.com/mileszim/seekrit/issues/360)) ([eb36425](https://github.com/mileszim/seekrit/commit/eb3642520bb149621078382553263a7a8845e06d))
+
 ## [0.7.0](https://github.com/mileszim/seekrit/compare/sdk-server-v0.6.0...sdk-server-v0.7.0) (2026-08-19)
 
 

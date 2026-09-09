@@ -42,7 +42,7 @@ pub struct AppState {
 pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/healthz", get(healthz))
-        .route("/v1/secret/:name", get(get_secret))
+        .route("/v1/secret/{name}", get(get_secret))
         .route("/v1/secrets", get(get_all))
         .with_state(state)
 }

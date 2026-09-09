@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.2](https://github.com/mileszim/seekrit/compare/sdk-server-v0.7.1...sdk-server-v0.7.2) (2026-09-09)
+
+
+### Dependencies
+
+* **deps:** bump axum from 0.7.9 to 0.8.9 in /apps/seekrit-sdk-server ([#338](https://github.com/mileszim/seekrit/issues/338)) ([5d5528c](https://github.com/mileszim/seekrit/commit/5d5528c706a4c966af58985adce9a2c92e8a7a61))
+* **deps:** bump sha2 from 0.10.9 to 0.11.0 in /crates/seekrit-cache ([#366](https://github.com/mileszim/seekrit/issues/366)) ([214a83a](https://github.com/mileszim/seekrit/commit/214a83a5223e3061b41fb58b120de7e7f9c0191f))
+* **deps:** bump sha2 from 0.10.9 to 0.11.0 in /crates/seekrit-core ([#367](https://github.com/mileszim/seekrit/issues/367)) ([24ae136](https://github.com/mileszim/seekrit/commit/24ae136559a3f60eddc31d5797cb3ab64a8c8742))
+
 ## [0.7.1](https://github.com/mileszim/seekrit/compare/sdk-server-v0.7.0...sdk-server-v0.7.1) (2026-09-09)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/mileszim/seekrit/compare/sdk-server-v0.7.2...sdk-server-v0.7.3) (2026-09-16)
+
+
+### Dependencies
+
+* **deps:** bump the rust group across 2 directories with 3 updates ([#421](https://github.com/mileszim/seekrit/issues/421)) ([d21b7bf](https://github.com/mileszim/seekrit/commit/d21b7bf407b54c92c0552ad713d290712528111a))
+
 ## [0.7.2](https://github.com/mileszim/seekrit/compare/sdk-server-v0.7.1...sdk-server-v0.7.2) (2026-09-09)
 
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.0](https://github.com/mileszim/seekrit/compare/sdk-server-v0.7.9...sdk-server-v0.8.0) (2026-10-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* **auth:** keep service-token private keys off the wire ([#542](https://github.com/mileszim/seekrit/issues/542))
+
+### Bug Fixes
+
+* **auth:** keep service-token private keys off the wire ([#542](https://github.com/mileszim/seekrit/issues/542)) ([109d2fa](https://github.com/mileszim/seekrit/commit/109d2fa9a5acbde593d5a96690a2613f1d9d1388))
+
 ## [0.7.9](https://github.com/mileszim/seekrit/compare/sdk-server-v0.7.8...sdk-server-v0.7.9) (2026-10-27)
 
 

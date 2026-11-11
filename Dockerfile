@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=mirror.gcr.io/docker/dockerfile:1
 #
 # seekrit-sdk-server — the cluster-side resolver that holds a service token,
 # decrypts secrets locally (zero-knowledge, via crates/seekrit-core), and serves
@@ -25,7 +25,11 @@
 #       -p 8080:8080 seekritdev/sdk-server
 
 # ---- build stage: static musl binary ----------------------------------------
-FROM rust:1.97-alpine AS build
+# Docker Hub's official `rust` image, and the `# syntax=` frontend on line 1,
+# both pulled through Google's Docker Hub mirror: the same digests, without
+# Docker Hub's pull rate limit, which 429'd every build leg of a release that
+# fans out ~16 of these builds at once.
+FROM mirror.gcr.io/library/rust:1.97-alpine AS build
 
 # musl-dev + a C toolchain: needed to build `ring` (rustls' crypto backend).
 RUN apk add --no-cache musl-dev gcc make
